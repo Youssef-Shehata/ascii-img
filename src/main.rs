@@ -9,27 +9,27 @@ use image::{
     DynamicImage, GenericImageView,
 };
 #[derive(Clone)]
-enum Asci {
-    Dot,
-    Star,
-    Qoute,
-    DoubleQoute,
-    Plus,
-    Hashtag,
-    And,
-    At,
+enum AsciLevel {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
 }
-impl Display for Asci {
+impl Display for AsciLevel {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Asci::Dot => write!(f, "."),
-            Asci::Star => write!(f, "*"),
-            Asci::Qoute => write!(f, "\'"),
-            Asci::DoubleQoute => write!(f, "\""),
-            Asci::Plus => write!(f, "+"),
-            Asci::Hashtag => write!(f, "#"),
-            Asci::And => write!(f, "&"),
-            Asci::At => write!(f, "@"),
+            AsciLevel::One => write!(f, "."),
+            AsciLevel::Two => write!(f, "'"),
+            AsciLevel::Three => write!(f, "*"),
+            AsciLevel::Four => write!(f, "o"),
+            AsciLevel::Five => write!(f, "+"),
+            AsciLevel::Six => write!(f, "a"),
+            AsciLevel::Seven => write!(f, "&"),
+            AsciLevel::Eight => write!(f, "@"),
         }
     }
 }
@@ -43,7 +43,8 @@ fn main() -> anyhow::Result<()> {
 
     let img = resize(img);
     let (width, height) = img.dimensions();
-    let mut buffer: Vec<Vec<Asci>> = vec![vec![Asci::Dot; width as usize]; height as usize];
+    let mut buffer: Vec<Vec<AsciLevel>> =
+        vec![vec![AsciLevel::One; width as usize]; height as usize];
 
     for (width, height, pixels) in img.pixels() {
         let height = height as usize;
@@ -59,32 +60,31 @@ fn main() -> anyhow::Result<()> {
     }
     Ok(())
 }
-fn pick_asci(pixel_value: u8) -> anyhow::Result<Asci> {
+fn pick_asci(pixel_value: u8) -> anyhow::Result<AsciLevel> {
     match pixel_value {
-        dot if dot >= 0 && dot <= 31 => {
-            return Ok(Asci::Dot);
+        dot if dot >=0 && dot <= 31 => {
+            return Ok(AsciLevel::One);
         }
-
         dot if dot > 31 && dot <= 62 => {
-            return Ok(Asci::Star);
+            return Ok(AsciLevel::Two);
         }
         dot if dot >= 62 && dot <= 93 => {
-            return Ok(Asci::Qoute);
+            return Ok(AsciLevel::Three);
         }
         dot if dot >= 93 && dot <= 124 => {
-            return Ok(Asci::Plus);
+            return Ok(AsciLevel::Four);
         }
         dot if dot >= 124 && dot <= 155 => {
-            return Ok(Asci::DoubleQoute);
+            return Ok(AsciLevel::Five);
         }
         dot if dot >= 155 && dot <= 186 => {
-            return Ok(Asci::Hashtag);
+            return Ok(AsciLevel::Six);
         }
         dot if dot >= 186 && dot <= 217 => {
-            return Ok(Asci::And);
+            return Ok(AsciLevel::Seven);
         }
         dot if dot >= 217 => {
-            return Ok(Asci::At);
+            return Ok(AsciLevel::Eight);
         }
         _ => {
             anyhow::bail!("corrupted image");
@@ -96,7 +96,7 @@ fn resize(img: DynamicImage) -> DynamicImage {
     let (mut width, mut height) = img.dimensions();
 
     let ratio = (width / height) as f32;
-    let base = 150;
+    let base = width / 7;
     if ratio > 1.0 {
         width = base;
         height = base * ratio as u32;
