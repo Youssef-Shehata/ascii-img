@@ -1,6 +1,8 @@
 use std::{
     env,
     fmt::{self, Display, Formatter},
+    fs::File,
+    io::Write,
 };
 
 use anyhow::Context;
@@ -10,6 +12,7 @@ use image::{
 };
 #[derive(Clone)]
 enum AsciLevel {
+    Empty,
     One,
     Two,
     Three,
@@ -22,13 +25,14 @@ enum AsciLevel {
 impl Display for AsciLevel {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
+            AsciLevel::Empty => write!(f, " "),
             AsciLevel::One => write!(f, "."),
-            AsciLevel::Two => write!(f, "'"),
+            AsciLevel::Two => write!(f, ":"),
             AsciLevel::Three => write!(f, "*"),
-            AsciLevel::Four => write!(f, "o"),
-            AsciLevel::Five => write!(f, "+"),
-            AsciLevel::Six => write!(f, "a"),
-            AsciLevel::Seven => write!(f, "&"),
+            AsciLevel::Four => write!(f, "="),
+            AsciLevel::Five => write!(f, "%"),
+            AsciLevel::Six => write!(f, "%"),
+            AsciLevel::Seven => write!(f, "#"),
             AsciLevel::Eight => write!(f, "@"),
         }
     }
@@ -42,6 +46,7 @@ fn main() -> anyhow::Result<()> {
     let img = image::open(img_path).context(format!("failed to open image at {img_path}."))?;
 
     let img = resize(img);
+
     let (width, height) = img.dimensions();
     let mut buffer: Vec<Vec<AsciLevel>> =
         vec![vec![AsciLevel::One; width as usize]; height as usize];
@@ -58,29 +63,42 @@ fn main() -> anyhow::Result<()> {
         }
         print!("\n");
     }
+    if let Some(save_path) = args.get(2) {
+        let mut f = File::create(save_path).context("creating file")?;
+        for line in buffer.iter() {
+            for char in line.iter() {
+                f.write_all(format!("{}", char).as_bytes())?;
+            }
+            f.write(b"\n")?;
+        }
+    };
+
     Ok(())
 }
 fn pick_asci(pixel_value: u8) -> anyhow::Result<AsciLevel> {
     match pixel_value {
-        dot if dot >=0 && dot <= 31 => {
+        dot if dot == 0 => {
+            return Ok(AsciLevel::Empty);
+        }
+        dot if dot <= 31 => {
             return Ok(AsciLevel::One);
         }
-        dot if dot > 31 && dot <= 62 => {
+        dot if dot <= 62 => {
             return Ok(AsciLevel::Two);
         }
-        dot if dot >= 62 && dot <= 93 => {
+        dot if dot <= 93 => {
             return Ok(AsciLevel::Three);
         }
-        dot if dot >= 93 && dot <= 124 => {
+        dot if dot <= 124 => {
             return Ok(AsciLevel::Four);
         }
-        dot if dot >= 124 && dot <= 155 => {
+        dot if dot <= 155 => {
             return Ok(AsciLevel::Five);
         }
-        dot if dot >= 155 && dot <= 186 => {
+        dot if dot <= 186 => {
             return Ok(AsciLevel::Six);
         }
-        dot if dot >= 186 && dot <= 217 => {
+        dot if dot <= 217 => {
             return Ok(AsciLevel::Seven);
         }
         dot if dot >= 217 => {
@@ -96,15 +114,17 @@ fn resize(img: DynamicImage) -> DynamicImage {
     let (mut width, mut height) = img.dimensions();
 
     let ratio = (width / height) as f32;
+
     let base = width / 7;
     if ratio > 1.0 {
         width = base;
         height = base * ratio as u32;
-    } else {
+    } else if ratio < 1.0 && ratio > 0.0 {
         height = base;
         width = base * ratio as u32;
+    } else {
+        return img.resize(800, 240, imageops::Lanczos3);
     }
 
-    let img = img.resize(width, height, imageops::Gaussian);
-    return img;
+    return img.resize(width, height, imageops::Lanczos3);
 }
