@@ -22,6 +22,8 @@ struct Cli {
     #[arg(short, long, value_name = "FILE", required = true)]
     img_path: PathBuf,
 
+    ///choose how to save the output image , as a png , to a text file or just print it to the
+    ///terminal.
     #[arg(value_enum , default_value_t = OutputType::Ter ) ]
     output: OutputType,
 }
@@ -29,9 +31,9 @@ struct Cli {
 enum OutputType {
     ///print in terminal (DEFAULT)
     Ter,
-    ///save as a png with a transparent background.
+    ///png with a transparent background.
     Img,
-    ///save as a text file.
+    ///text file.
     Txt,
 }
 
@@ -150,8 +152,8 @@ fn convert_to_asci_img(img: DynamicImage) -> anyhow::Result<()> {
         buffer[height][width] = pixel_to_asci(pixels.0[0])?;
     }
     let width = width * line_height;
-    let height= height* line_height;
-    let mut asci_img = RgbaImage::new(width , height );
+    let height = height * line_height;
+    let mut asci_img = RgbaImage::new(width, height);
 
     // Set the background to transparent
     for pixel in asci_img.pixels_mut() {
@@ -172,8 +174,8 @@ fn convert_to_asci_img(img: DynamicImage) -> anyhow::Result<()> {
         for glyph in font.layout(&s, scale, line_start) {
             if let Some(bb) = glyph.pixel_bounding_box() {
                 glyph.draw(|x, y, _| {
-                    let x = x + bb.min.x as u32;
-                    let y = y + bb.min.y as u32;
+                    let x = (x as i32 + bb.min.x).max(0) as u32;
+                    let y = (y as i32 + bb.min.y).max(0) as u32;
 
                     if x < width && y < height {
                         asci_img.put_pixel(x, y, Rgba([0, 0, 0, 255]));
