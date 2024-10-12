@@ -65,6 +65,21 @@ impl Display for AsciLevel {
     }
 }
 
+impl AsciLevel {
+    fn ratio(&self) -> f32 {
+        match self {
+            AsciLevel::Empty => 0.0,
+            AsciLevel::One => 0.31,
+            AsciLevel::Two => 0.62,
+            AsciLevel::Three => 0.93,
+            AsciLevel::Four => 0.124,
+            AsciLevel::Five => 0.155,
+            AsciLevel::Six => 0.188,
+            AsciLevel::Seven => 0.217,
+            AsciLevel::Eight => 0.1,
+        }
+    }
+}
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -72,6 +87,8 @@ fn main() -> anyhow::Result<()> {
         "failed to open image at {}.",
         cli.img_path.display()
     ))?;
+
+    let f = File::open(cli.img_path)?;
 
     match cli.output {
         OutputType::Ter => convert_to_asci_terminal(img)?,
@@ -81,39 +98,17 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
 fn pixel_to_asci(pixel_value: u8) -> anyhow::Result<AsciLevel> {
     match pixel_value {
-        dot if dot == 0 => {
-            return Ok(AsciLevel::Empty);
-        }
-        dot if dot <= 31 => {
-            return Ok(AsciLevel::One);
-        }
-        dot if dot <= 62 => {
-            return Ok(AsciLevel::Two);
-        }
-        dot if dot <= 93 => {
-            return Ok(AsciLevel::Three);
-        }
-        dot if dot <= 124 => {
-            return Ok(AsciLevel::Four);
-        }
-        dot if dot <= 155 => {
-            return Ok(AsciLevel::Five);
-        }
-        dot if dot <= 186 => {
-            return Ok(AsciLevel::Six);
-        }
-        dot if dot <= 217 => {
-            return Ok(AsciLevel::Seven);
-        }
-        dot if dot >= 217 => {
-            return Ok(AsciLevel::Eight);
-        }
-        _ => {
-            anyhow::bail!("corrupted image");
-        }
+        0 => Ok(AsciLevel::Empty),
+        1..=31 => Ok(AsciLevel::One),
+        32..=62 => Ok(AsciLevel::Two),
+        63..=93 => Ok(AsciLevel::Three),
+        94..=124 => Ok(AsciLevel::Four),
+        125..=155 => Ok(AsciLevel::Five),
+        156..=186 => Ok(AsciLevel::Six),
+        187..=217 => Ok(AsciLevel::Seven),
+        218..=255 => Ok(AsciLevel::Eight),
     }
 }
 
@@ -178,7 +173,7 @@ fn convert_to_asci_img(img: DynamicImage) -> anyhow::Result<()> {
                     let y = (y as i32 + bb.min.y).max(0) as u32;
 
                     if x < width && y < height {
-                        asci_img.put_pixel(x, y, Rgba([0, 0, 0, 255]));
+                        asci_img.put_pixel(x, y, Rgba([255, 255, 255, 255]));
                     }
                 });
             }
@@ -222,8 +217,8 @@ fn resize(img: DynamicImage) -> DynamicImage {
         height = base;
         width = base * ratio as u32;
     } else {
-        return img.resize(300, 320, imageops::Lanczos3);
+    return image::DynamicImage::from(image::imageops::resize(&img, 100, 50, imageops::FilterType::Nearest));
     }
+    return image::DynamicImage::from(image::imageops::resize(&img, width, height, imageops::FilterType::Lanczos3));
 
-    return img.resize(width, height, imageops::Lanczos3);
 }
