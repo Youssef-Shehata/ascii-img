@@ -1,10 +1,10 @@
-use clap::ValueEnum;
+use clap::{builder::OsStr, ValueEnum};
 use rusttype::{point, Font, Scale};
 use std::{
     fmt::{self, Display, Formatter},
     fs::File,
     io::Write,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Context;
@@ -87,18 +87,19 @@ fn main() -> anyhow::Result<()> {
         "failed to open image at {}.",
         cli.img_path.display()
     ))?;
-
-    let f = File::open(cli.img_path)?;
-
+    let path = Path::new(&cli.img_path);
+    let asc = OsStr::from("ascii");
+    let name = path.file_name().unwrap_or(&asc);
+    let name = name.to_string_lossy().to_string();
     match cli.output {
-        OutputType::Ter => convert_to_asci_terminal(img)?,
-        OutputType::Img => convert_to_asci_img(img)?,
-        OutputType::Txt => convert_to_asci_file(img)?,
+        OutputType::Ter => convert_to_asci_terminal(img )?,
+        OutputType::Img => convert_to_asci_img(img,name)?,
+        OutputType::Txt => convert_to_asci_file(img,name)?,
     };
 
     Ok(())
 }
-fn pixel_to_asci(pixel_value: u8) -> anyhow::Result<AsciLevel> {
+fn pixel_to_asci(pixel_value: u8 ) -> anyhow::Result<AsciLevel> {
     match pixel_value {
         0 => Ok(AsciLevel::Empty),
         1..=31 => Ok(AsciLevel::One),
@@ -112,7 +113,7 @@ fn pixel_to_asci(pixel_value: u8) -> anyhow::Result<AsciLevel> {
     }
 }
 
-fn convert_to_asci_file(img: DynamicImage) -> anyhow::Result<()> {
+fn convert_to_asci_file(img: DynamicImage, name:String) -> anyhow::Result<()> {
     let img = img.grayscale();
     let (width, height) = img.dimensions();
     let mut buffer: Vec<Vec<AsciLevel>> =
@@ -123,7 +124,9 @@ fn convert_to_asci_file(img: DynamicImage) -> anyhow::Result<()> {
         let width = width as usize;
         buffer[height][width] = pixel_to_asci(pixels.0[0])?;
     }
-    let mut f = File::create(format!("asci.txt")).context("creating file")?;
+    let name = name.split_once(".").unwrap();
+    let mut f = File::create(format!("{}.txt" , name.0)).context("creating file")?;
+
 
     for line in buffer.iter() {
         for char in line.iter() {
@@ -134,7 +137,7 @@ fn convert_to_asci_file(img: DynamicImage) -> anyhow::Result<()> {
 
     Ok(())
 }
-fn convert_to_asci_img(img: DynamicImage) -> anyhow::Result<()> {
+fn convert_to_asci_img(img: DynamicImage , name:String) -> anyhow::Result<()> {
     let line_height = 5;
     let img = img.grayscale();
     let (width, height) = img.dimensions();
@@ -179,7 +182,7 @@ fn convert_to_asci_img(img: DynamicImage) -> anyhow::Result<()> {
             }
         }
     }
-    asci_img.save("asci.png").expect("Error saving image");
+    asci_img.save(format!("{name}.png")).expect("Error saving image");
 
     Ok(())
 }

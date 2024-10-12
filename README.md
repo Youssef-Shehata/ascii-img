@@ -11,6 +11,5 @@ A simple program that takes an image and converts it into ASCII art.
 
 ```
 ## example output
-![example output image of gojo](examples/asci_gojo.png)
 ![example output image of kilua](examples/asci_kilua.png)
 ![example output image of gon](examples/asci_gon.png)
