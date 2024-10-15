@@ -1,4 +1,6 @@
 use clap::{builder::OsStr, ValueEnum};
+use imageproc::{drawing::Canvas, filter::gaussian_blur_f32};
+
 use rusttype::{point, Font, Scale};
 use std::{
     fmt::{self, Display, Formatter},
@@ -115,7 +117,7 @@ fn pixel_to_asci(pixel_value: u8 ) -> anyhow::Result<AsciLevel> {
 
 fn convert_to_asci_file(img: DynamicImage, name:String) -> anyhow::Result<()> {
     let img = img.grayscale();
-    let (width, height) = img.dimensions();
+    let (width , height ) = GenericImageView::dimensions(&img);
     let mut buffer: Vec<Vec<AsciLevel>> =
         vec![vec![AsciLevel::One; width as usize]; height as usize];
 
@@ -140,7 +142,7 @@ fn convert_to_asci_file(img: DynamicImage, name:String) -> anyhow::Result<()> {
 fn convert_to_asci_img(img: DynamicImage , name:String) -> anyhow::Result<()> {
     let line_height = 5;
     let img = img.grayscale();
-    let (width, height) = img.dimensions();
+    let (width , height ) = GenericImageView::dimensions(&img);
     let mut buffer: Vec<Vec<AsciLevel>> =
         vec![vec![AsciLevel::One; width as usize]; height as usize];
 
@@ -188,7 +190,8 @@ fn convert_to_asci_img(img: DynamicImage , name:String) -> anyhow::Result<()> {
 }
 fn convert_to_asci_terminal(img: DynamicImage) -> anyhow::Result<()> {
     let img = resize(img);
-    let (width, height) = img.dimensions();
+
+    let (width , height ) = GenericImageView::dimensions(&img);
     let mut buffer: Vec<Vec<AsciLevel>> =
         vec![vec![AsciLevel::One; width as usize]; height as usize];
 
@@ -208,20 +211,15 @@ fn convert_to_asci_terminal(img: DynamicImage) -> anyhow::Result<()> {
 }
 fn resize(img: DynamicImage) -> DynamicImage {
     let img = img.grayscale();
-    let (mut width, mut height) = img.dimensions();
 
-    let ratio = (width / height) as f32;
+    let (width , _) = GenericImageView::dimensions(&img);
+    let factor = 0.2;
+    let nwidth = width as f32* factor;
+    let nheight = nwidth*(3.0/4.0);
+    let img = image::DynamicImage::from(image::imageops::resize(&img, (nwidth) as u32, (nheight) as u32, imageops::FilterType::Lanczos3));
+    let img= gaussian_blur_f32(&img.to_luma8(), 0.1);
 
-    let base = width / 7;
-    if ratio > 1.0 {
-        width = base;
-        height = base * ratio as u32;
-    } else if ratio < 1.0 && ratio > 0.0 {
-        height = base;
-        width = base * ratio as u32;
-    } else {
-    return image::DynamicImage::from(image::imageops::resize(&img, 100, 50, imageops::FilterType::Nearest));
-    }
-    return image::DynamicImage::from(image::imageops::resize(&img, width, height, imageops::FilterType::Lanczos3));
-
+    let img = DynamicImage::from(img);
+    img.save("new_gojo.png").expect("failed to resize");
+    img 
 }

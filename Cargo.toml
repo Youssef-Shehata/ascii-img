@@ -8,4 +8,5 @@ author = "youssef-shehata"
 anyhow = "1.0.89"
 clap = { version = "4.5.20", features = ["derive"] }
 image = "0.25.2"
+imageproc = "0.25.0"
 rusttype = "0.9.3"
